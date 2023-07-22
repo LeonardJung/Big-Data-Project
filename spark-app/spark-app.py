@@ -30,7 +30,7 @@ kafkaMessages = spark \
 
 # Define schema of tracking data
 trackingMessageSchema = StructType() \
-    .add("mission", StringType()) \
+    .add("project", StringType()) \
     .add("timestamp", IntegerType())
 
 # Convert value: binary -> JSON -> fields + parsed timestamp
@@ -49,17 +49,17 @@ trackingMessages = kafkaMessages.select(
     # Select all JSON fields
     column("json.*")
 ) \
-    .withColumnRenamed('json.mission', 'mission') \
+    .withColumnRenamed('json.project', 'project') \
     .withWatermark("parsed_timestamp", windowDuration)
 
-# Compute most popular missions
+# Compute most popular projects
 popular = trackingMessages.groupBy(
     window(
         column("parsed_timestamp"),
         windowDuration,
         slidingDuration
     ),
-    column("mission")
+    column("project")
 ).count() \
     .withColumnRenamed('window.start', 'window_end') \
     .withColumnRenamed('window.end', 'window_start')
@@ -90,17 +90,18 @@ consoleDump = popular \
 # therefore, we decided insert the data "manually"
 def saveToDatabase(batchDataframe, batchId):
     global dbHost, dbUser, dbPassword, dbDatabase
+    print(f"Writing batchID {batchId} to database")
     mysql_conn = mysql.connector.connect(host=dbHost, user=dbUser, password=dbPassword, database=dbDatabase)
     mysql_cursor = mysql_conn.cursor()
     mysql_cursor.execute("TRUNCATE TABLE `popular`");
     for row in batchDataframe.distinct().collect():
-        mysql_cursor.execute("REPLACE INTO `popular` (`mission`, `count`) VALUES (%s, %s)", (row["mission"], row["count"]))
+        mysql_cursor.execute("REPLACE INTO `popular` (`project`, `count`) VALUES (%s, %s)", (row["project"], row["count"]))
     mysql_conn.commit()
     mysql_cursor.close()
     mysql_conn.close()
 
 dbInsertStream = popular \
-    .select(column('mission'), column('count')) \
+    .select(column('project'), column('count')) \
     .writeStream \
     .outputMode("complete") \
     .foreachBatch(saveToDatabase) \
