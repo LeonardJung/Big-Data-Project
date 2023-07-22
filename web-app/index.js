@@ -219,10 +219,10 @@ async function getProjects() {
 		return { result: cachedata, cached: true }
 	} else {
 		console.log(`Cache miss for key=${key}, querying database`)
-		const data = await executeQuery("SELECT id, title FROM projects", [])
+		const data = await executeQuery("SELECT id, title, description FROM projects", [])
 		if (data) {
 			let result = data
-				.map(row => ({ id: row?.[0], title: row?.[1] }));
+				.map(row => ({ id: row?.[0], title: row?.[1], description: row?.[2] }));
 			console.log("Got result=", result, "storing in cache")
 			if (memcached)
 				await memcached.set(key, result, cacheTimeSecs);
@@ -246,9 +246,9 @@ app.get("/", (req, res) => {
 		const projects = values[0]
 		const popular = values[1]
 
-		let projectTitles = []
+		let projectTable = []
 		projects.result.forEach(project => {
-			projectTitles[project.id] = project.title;
+			projectTable[project.id] = project;
 		});
 
 		const popularHtml = popular
@@ -256,10 +256,8 @@ app.get("/", (req, res) => {
 				<div class="col-sm-4 mb-4">
 					<div class="card">
 						<div class="card-body">
-							<h5 class="card-title">${projectTitles[pop.project]}</h5>
-							<p class="card-text">
-								Text
-							</p>
+							<h5 class="card-title">${projectTable[pop.project].title}</h5>
+							<p class="card-text">${projectTable[pop.project].description}</p>
 							<a href='projects/${pop.project}'>Read more</a>
 						</div>
 					</div>
@@ -309,7 +307,7 @@ app.get("/projects", (req, res) => {
 // -------------------------------------------------------
 
 async function getProject(project) {
-	const query = "SELECT title, description FROM projects WHERE id = ?"
+	const query = "SELECT title, description, text FROM projects WHERE id = ?"
 	const key = 'project_' + project
 	let cachedata = await getFromCache(key)
 
@@ -321,7 +319,7 @@ async function getProject(project) {
 
 		let data = (await executeQuery(query, [project]))?.[0] // first entry
 		if (data) {
-			let result = { title: data?.[0], description: data?.[1] }
+			let result = { title: data?.[0], description: data?.[1], text: data?.[2] }
 			console.log(`Got result=${result}, storing in cache`)
 			if (memcached)
 				await memcached.set(key, result, cacheTimeSecs);
@@ -344,9 +342,13 @@ app.get("/projects/:project", (req, res) => {
 
 	// Send reply to browser
 	getProject(project).then(data => {
-		sendResponse(res, `<h1>${data.title}</h1>` +
-			data.description.split("\n").map(p => `<p>${p}</p>`).join("\n")
-		)
+		let htmlText = data.text.split("\n").map(p => `<p>${p}</p>`).join("\n");
+		sendResponse(res, `
+			<h1>${data.title}</h1>
+			<p>${data.description}<p>
+			<hr>
+			${htmlText}
+		`)
 	}).catch(err => {
 		sendResponse(res, `<h1>Error</h1><p>${err}</p>`, false)
 	})
