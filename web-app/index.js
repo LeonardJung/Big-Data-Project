@@ -145,44 +145,79 @@ async function sendTrackingMessage(data) {
 // HTML helper to send a response to the client
 // -------------------------------------------------------
 
-function sendResponse(res, html, cachedResult) {
-	res.send(`<!DOCTYPE html>
-		<html lang="en">
-		<head>
-			<meta charset="UTF-8">
-			<meta name="viewport" content="width=device-width, initial-scale=1.0">
-			<title>Big Data Use-Case Demo</title>
-			<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mini.css/3.0.1/mini-default.min.css">
-			<script>
-				function fetchRandomProjects() {
-					const maxRepetitions = Math.floor(Math.random() * 200)
-					document.getElementById("out").innerText = "Fetching " + maxRepetitions + " random projects, see console output"
-					for(var i = 0; i < maxRepetitions; ++i) {
-						const projectId = Math.floor(Math.random() * ${numberOfProjects})
-						console.log("Fetching project id " + projectId)
-						fetch("/projects/" + projectId, {cache: 'no-cache'})
+function sendResponse(res, html) {
+	const topX = 7;
+	Promise.all([getProjects(), getPopular(topX)]).then(values => {
+		const projects = values[0]
+		const popular = values[1]
+
+		let projectTitles = []
+		projects.result.forEach(project => {
+			projectTitles[project.id] = project.title;
+		});
+
+		const popularHtml = popular
+			.map(pop => `<li><a class='nav-link' href='projects/${pop.project}'>${projectTitles[pop.project]} (${pop.count} views)</a></li>`)
+			.join("\n")
+
+		res.send(`<!DOCTYPE html>
+			<html lang="en">
+			<head>
+				<meta charset="UTF-8">
+				<meta name="viewport" content="width=device-width, initial-scale=1.0">
+				<title>Big Data Research Institute</title>
+				<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+				<script>
+					function fetchRandomProjects() {
+						const maxRepetitions = Math.floor(Math.random() * 200)
+						for(var i = 0; i < maxRepetitions; ++i) {
+							const projectId = Math.floor(Math.random() * ${numberOfProjects})
+							console.log("Fetching project id " + projectId)
+							fetch("/projects/" + projectId, {cache: 'no-cache'})
+						}
 					}
-				}
-			</script>
-		</head>
-		<body>
-			<h1>Big Data Use Case Demo</h1>
-			<p>
-				<a href="javascript: fetchRandomProjects();">Randomly fetch some projects</a>
-				<span id="out"></span>
-			</p>
-			${html}
-			<hr>
-			<h2>Information about the generated page</h4>
-			<ul>
-				<li>Server: ${os.hostname()}</li>
-				<li>Date: ${new Date()}</li>
-				<li>Using ${memcachedServers.length} memcached Servers: ${memcachedServers}</li>
-				<li>Cached result: ${cachedResult}</li>
-			</ul>
-		</body>
-	</html>
-	`)
+				</script>
+			</head>
+			<body>
+				<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+					<div class="container-fluid">
+						<a class="navbar-brand" href="/">
+							BDRI
+						</a>
+						<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+							<span class="navbar-toggler-icon"></span>
+						</button>
+						<div class="collapse navbar-collapse" id="navbarContent">
+							<ul class="navbar-nav me-auto mb-2 mb-lg-0">
+								<li class="nav-item">
+									<a class="nav-link" href="/">Home</a>
+								</li>
+								<li class="nav-item dropdown">
+									<a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+										Our Projects
+									</a>
+									<ul class="dropdown-menu dropdown-menu-dark">
+										${popularHtml}
+										<li><hr class="dropdown-divider"></li>
+										<li>
+											<a class='nav-link' href="/projects">Other Projects</a>
+										</li>
+									</ul>
+								</li>
+							</ul>
+						</div>
+					</div>
+				</nav>
+
+				<div class="container mt-5">
+					${html}
+				</div>
+
+				<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+			</body>
+		</html>
+		`)
+	});
 }
 
 // -------------------------------------------------------
@@ -201,7 +236,8 @@ async function getProjects() {
 		console.log(`Cache miss for key=${key}, querying database`)
 		const data = await executeQuery("SELECT id, title FROM projects", [])
 		if (data) {
-			let result = data.map(row => row?.[0])
+			let result = data
+				.map(row => ({ id: row?.[0], title: row?.[1] }));
 			console.log("Got result=", result, "storing in cache")
 			if (memcached)
 				await memcached.set(key, result, cacheTimeSecs);
@@ -219,32 +255,34 @@ async function getPopular(maxCount) {
 		.map(row => ({ project: row?.[0], count: row?.[1] }))
 }
 
-// Return HTML for start page
 app.get("/", (req, res) => {
-	const topX = 10;
+	sendResponse(res, "<h1>Big Data Research Institute</h1>");
+})
+
+app.get("/projects", (req, res) => {
+	const topX = 7;
 	Promise.all([getProjects(), getPopular(topX)]).then(values => {
 		const projects = values[0]
 		const popular = values[1]
 
-		const projectsHtml = projects.result
-			.map(m => `<a href='projects/${m}'>${m}</a>`)
-			.join(", ")
-
 		const popularHtml = popular
-			.map(pop => `<li> <a href='projects/${pop.project}'>${pop.project}</a> (${pop.count} views) </li>`)
+			.map(pop => `<p><a href='projects/${pop.project}'>${pop.project}</a> (${pop.count} views)</p>`)
+			.join("\n")
+
+		const projectsHtml = projects.result
+			.map(m => `<p><a href='projects/${m.id}'>${m.title}</a></p>`)
 			.join("\n")
 
 		const html = `
-			<h1>Top ${topX} Projects</h1>		
-			<p>
-				<ol style="margin-left: 2em;"> ${popularHtml} </ol> 
-			</p>
+			<h1>Popular Projects</h1>
+			${popularHtml}
+
 			<h1>All Projects</h1>
-			<p> ${projectsHtml} </p>
+			${projectsHtml}
 		`
-		sendResponse(res, html, projects.cached)
-	})
-})
+		sendResponse(res, html)
+	});
+});
 
 // -------------------------------------------------------
 // Get a specific project (from cache or DB)
@@ -287,8 +325,7 @@ app.get("/projects/:project", (req, res) => {
 	// Send reply to browser
 	getProject(project).then(data => {
 		sendResponse(res, `<h1>${data.title}</h1>` +
-			data.description.split("\n").map(p => `<p>${p}</p>`).join("\n"),
-			data.cached
+			data.description.split("\n").map(p => `<p>${p}</p>`).join("\n")
 		)
 	}).catch(err => {
 		sendResponse(res, `<h1>Error</h1><p>${err}</p>`, false)
