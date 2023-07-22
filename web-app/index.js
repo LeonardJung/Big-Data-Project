@@ -146,78 +146,63 @@ async function sendTrackingMessage(data) {
 // -------------------------------------------------------
 
 function sendResponse(res, html) {
-	const topX = 7;
-	Promise.all([getProjects(), getPopular(topX)]).then(values => {
-		const projects = values[0]
-		const popular = values[1]
-
-		let projectTitles = []
-		projects.result.forEach(project => {
-			projectTitles[project.id] = project.title;
-		});
-
-		const popularHtml = popular
-			.map(pop => `<li><a class='nav-link' href='projects/${pop.project}'>${projectTitles[pop.project]} (${pop.count} views)</a></li>`)
-			.join("\n")
-
-		res.send(`<!DOCTYPE html>
-			<html lang="en">
-			<head>
-				<meta charset="UTF-8">
-				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-				<title>Big Data Research Institute</title>
-				<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
-				<script>
-					function fetchRandomProjects() {
-						const maxRepetitions = Math.floor(Math.random() * 200)
-						for(var i = 0; i < maxRepetitions; ++i) {
-							const projectId = Math.floor(Math.random() * ${numberOfProjects})
-							console.log("Fetching project id " + projectId)
-							fetch("/projects/" + projectId, {cache: 'no-cache'})
-						}
+	res.send(`<!DOCTYPE html>
+		<html lang="en">
+		<head>
+			<meta charset="UTF-8">
+			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+			<title>Big Data Research Institute</title>
+			<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+			<script>
+				function fetchRandomProjects() {
+					const maxRepetitions = Math.floor(Math.random() * 200)
+					for(var i = 0; i < maxRepetitions; ++i) {
+						const projectId = Math.floor(Math.random() * ${numberOfProjects})
+						console.log("Fetching project id " + projectId)
+						fetch("/projects/" + projectId, {cache: 'no-cache'})
 					}
-				</script>
-			</head>
-			<body>
-				<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-					<div class="container-fluid">
-						<a class="navbar-brand" href="/">
-							BDRI
-						</a>
-						<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
-							<span class="navbar-toggler-icon"></span>
-						</button>
-						<div class="collapse navbar-collapse" id="navbarContent">
-							<ul class="navbar-nav me-auto mb-2 mb-lg-0">
-								<li class="nav-item">
-									<a class="nav-link" href="/">Home</a>
-								</li>
-								<li class="nav-item dropdown">
-									<a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-										Our Projects
-									</a>
-									<ul class="dropdown-menu dropdown-menu-dark">
-										${popularHtml}
-										<li><hr class="dropdown-divider"></li>
-										<li>
-											<a class='nav-link' href="/projects">Other Projects</a>
-										</li>
-									</ul>
-								</li>
-							</ul>
-						</div>
+				}
+			</script>
+		</head>
+		<body>
+			<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+				<div class="container-fluid">
+					<a class="navbar-brand" href="/">
+						BDRI
+					</a>
+					<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+						<span class="navbar-toggler-icon"></span>
+					</button>
+					<div class="collapse navbar-collapse" id="navbarContent">
+						<ul class="navbar-nav me-auto mb-2 mb-lg-0">
+							<li class="nav-item">
+								<a class="nav-link" href="#">Our Mission</a>
+							</li>
+							<li class="nav-item dropdown">
+								<a class="nav-link" href="/projects">Our Projects</a>
+							</li>
+							<li class="nav-item">
+								<a class="nav-link" href="#">Publications</a>
+							</li>
+							<li class="nav-item">
+								<a class="nav-link" href="#">Contact</a>
+							</li>
+							<li class="nav-item">
+								<a class="nav-link" href="#">GDPR</a>
+							</li>
+						</ul>
 					</div>
-				</nav>
-
-				<div class="container mt-5">
-					${html}
 				</div>
+			</nav>
 
-				<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
-			</body>
-		</html>
-		`)
-	});
+			<div class="container mt-5">
+				${html}
+			</div>
+
+			<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+		</body>
+	</html>
+	`)
 }
 
 // -------------------------------------------------------
@@ -256,7 +241,42 @@ async function getPopular(maxCount) {
 }
 
 app.get("/", (req, res) => {
-	sendResponse(res, "<h1>Big Data Research Institute</h1>");
+	const topX = 6;
+	Promise.all([getProjects(), getPopular(topX)]).then(values => {
+		const projects = values[0]
+		const popular = values[1]
+
+		let projectTitles = []
+		projects.result.forEach(project => {
+			projectTitles[project.id] = project.title;
+		});
+
+		const popularHtml = popular
+			.map(pop => `
+				<div class="col-sm-4 mb-4">
+					<div class="card">
+						<div class="card-body">
+							<h5 class="card-title">${projectTitles[pop.project]}</h5>
+							<p class="card-text">
+								Text
+							</p>
+							<a href='projects/${pop.project}'>Read more</a>
+						</div>
+					</div>
+				</div>
+			`)
+			.join("\n")
+
+		sendResponse(res, `
+			<h1>Big Data Research Institute</h1>
+
+			<p>Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.</p>
+
+			<div class="row">
+				${popularHtml}
+			</div>
+		`);
+	});
 })
 
 app.get("/projects", (req, res) => {
