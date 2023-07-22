@@ -54,15 +54,8 @@ trackingMessages = kafkaMessages.select(
 
 # Compute most popular projects
 popular = trackingMessages.groupBy(
-    window(
-        column("parsed_timestamp"),
-        windowDuration,
-        slidingDuration
-    ),
     column("project")
-).count() \
-    .withColumnRenamed('window.start', 'window_end') \
-    .withColumnRenamed('window.end', 'window_start')
+).count()
 
 # Start running the query; print running counts to the console
 consoleDump = popular \
@@ -93,8 +86,8 @@ def saveToDatabase(batchDataframe, batchId):
     print(f"Writing batchID {batchId} to database")
     mysql_conn = mysql.connector.connect(host=dbHost, user=dbUser, password=dbPassword, database=dbDatabase)
     mysql_cursor = mysql_conn.cursor()
-    mysql_cursor.execute("TRUNCATE TABLE `popular`");
     for row in batchDataframe.distinct().collect():
+        print(row)
         mysql_cursor.execute("REPLACE INTO `popular` (`project`, `count`) VALUES (%s, %s)", (row["project"], row["count"]))
     mysql_conn.commit()
     mysql_cursor.close()
