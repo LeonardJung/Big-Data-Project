@@ -278,17 +278,30 @@ app.get("/", (req, res) => {
 })
 
 app.get("/projects", (req, res) => {
-	const topX = 7;
+	const topX = 6;
 	Promise.all([getProjects(), getPopular(topX)]).then(values => {
 		const projects = values[0]
 		const popular = values[1]
 
+		let projectTable = []
+		projects.result.forEach(project => {
+			projectTable[project.id] = project;
+		});
+
 		const popularHtml = popular
-			.map(pop => `<p><a href='projects/${pop.project}'>${pop.project}</a> (${pop.count} views)</p>`)
+			.map(pop => `
+				<div class="card mb-4">
+					<div class="card-body">
+						<h5 class="card-title">${projectTable[pop.project].title} (${pop.count} views)</h5>
+						<p class="card-text">${projectTable[pop.project].description}</p>
+						<a href='projects/${pop.project}'>Read more</a>
+					</div>
+				</div>
+			`)
 			.join("\n")
 
 		const projectsHtml = projects.result
-			.map(m => `<p><a href='projects/${m.id}'>${m.title}</a></p>`)
+			.map(m => `<p><a href='projects/${m.id}'>${m.title}</a> - ${m.description}</p>`)
 			.join("\n")
 
 		const html = `
