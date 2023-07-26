@@ -1,5 +1,15 @@
 # Use Case: Popular Pages on Web Site
 
+## Documentation
+
+Goal of this application is to rank the subpages of a website by popularity.
+By underlying the webpage with a big-data architecture the functionality is easily scaleable and extendable.
+
+A cache-server is used to manage load and Spark on Hadoop handles the data processing.
+For storage a mariadb-server is used.
+
+By utilizing batch-processing a lambda-architecture is built to handle even big income of data.
+
 ## Installation
 
 Install necessary packages:
@@ -73,12 +83,12 @@ sudo install skaffold /usr/local/bin/
 
 # For linux machines
 
-The application can be started using `skaffold dev`.
-To access the application, visit `http://<IP OF MINIKUBE>/`.
-The IP of minikube can be queried using `minikube ip`.
+The application can be started using `skaffold dev`.<br>
+To access the application, visit `http://<IP OF MINIKUBE>/`.<br>
+The IP of minikube can be queried using `minikube ip`.<br>
 
 # For WSL users
 
-The application can be started using `skaffold dev`.
-To expose the application outside your VM use `minikube service popular-slides-service --url`.
-The IP of the application can be accesses in your browser `http://localhost:<PORT OF APPLICATION>`
+The application can be started using `skaffold dev`. <br>
+To expose the application outside your VM use `minikube service popular-slides-service --url`.<br>
+The IP of the application can be accesses in your browser `http://localhost:<PORT OF APPLICATION>`.<br>
