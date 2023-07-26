@@ -1,0 +1,22 @@
+#Begin: Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: popular-slides
+  labels:
+    app: popular-slides
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: popular-slides-web
+  template:
+    metadata:
+      labels:
+        app: popular-slides-web
+    spec:
+      containers:
+        - name: popular-slides-web
+          image: farberg/popular-slides
+          ports:
+            - containerPort: 3000

@@ -1,0 +1,11 @@
+#Begin: Service
+kind: Service
+apiVersion: v1
+metadata:
+  name: my-memcached-service
+spec:
+  # Headless service (i.e., no ip is assigned)
+  clusterIP: None
+  selector:
+    app: my-memcached
+#End: Service

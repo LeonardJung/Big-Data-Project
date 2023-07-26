@@ -1,0 +1,13 @@
+#Begin: Service
+kind: Service
+apiVersion: v1
+metadata:
+  name: popular-slides-service
+spec:
+  selector:
+    app: popular-slides-web
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+#End: Service

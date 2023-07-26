@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mariadb-deployment
+  labels:
+    app: my-mariadb-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-mariadb
+  template:
+    metadata:
+      labels:
+        app: my-mariadb
+    spec:
+      # Mount the configmap volume
+      # This is an excerpt of deployment.spec.template.spec
+      volumes:
+        - name: init-volume
+          configMap:
+            name: mariadb-deployment-init-configmap
+      containers:
+        - name: my-mariadb
+          image: mariadb
+          volumeMounts:
+            - name: init-volume
+              mountPath: /docker-entrypoint-initdb.d/
+          # Set required environment variables to initialize the container
+          env:
+            - name: MARIADB_ROOT_PASSWORD
+              value: "mysecretpw"
+            - name: MARIADB_DATABASE
+              value: "popular"
+          ports:
+            - containerPort: 3306
