@@ -1,5 +1,9 @@
 # Use Case: Popular Pages on Web Site
 
+
+https://github.com/LeonardJung/Big-Data-Project/assets/105881005/8db99d0c-f983-47aa-b8c4-24de1712a8b8
+
+
 ## Documentation
 
 Goal of this application is to rank the subpages of a website by popularity.
